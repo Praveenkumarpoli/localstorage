@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Responsive Fake Store API with Dropdown</title>
+    <style>
+        html,
+        body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            background-color: #f0f0f0;
+        }
+
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #282c34;
+            color: #ffffff;
+            padding: 20px;
+        }
+
+        #output {
+            background-color: #1c1c1e;
+            margin: 20px;
+            padding: 20px;
+            border-radius: 15px;
+            width: 100%;
+            max-width: 1200px;
+            color: white;
+        }
+
+        button {
+            border: 0;
+            padding: 14px;
+            font-size: 1.2rem;
+            border-radius: 10px;
+            margin: 10px;
+            background-color: #61dafb;
+            color: #000;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+        }
+
+        button:hover {
+            background-color: #21a1f1;
+            transform: scale(1.05);
+        }
+
+        .cards {
+            background-color: #444;
+            border: 1px solid #61dafb;
+            margin: 10px;
+            padding: 20px;
+            border-radius: 8px;
+            opacity: 0;
+            animation: fadeIn 0.8s forwards;
+        }
+
+        .btn-container {
+            margin: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            width: 100%;
+        }
+
+        /* Attractive search bar styles */
+        #search-bar-container {
+            position: relative;
+            width: 100%;
+            max-width: 500px;
+        }
+
+        #search-bar {
+            padding: 12px;
+            font-size: 1.2rem;
+            width: 100%;
+            margin: 15px 0;
+            border-radius: 8px;
+            border: 2px solid #61dafb;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+            outline: none;
+        }
+
+        #search-bar:focus {
+            border-color: #21a1f1;
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
+        }
+
+        #category-dropdown {
+            position: absolute;
+            top: 55px;
+            width: 100%;
+            background-color: #fff;
+            border: 1px solid #ccc;
+            max-height: 200px;
+            overflow-y: auto;
+            display: none;
+            z-index: 1;
+            color: black;
+        }
+
+        #category-dropdown div {
+            padding: 10px;
+            cursor: pointer;
+        }
+
+        #category-dropdown div:hover {
+            background-color: #ddd;
+        }
+
+        #search-btn {
+            background-color: #61dafb;
+            color: #000;
+            border: 0;
+            padding: 12px 20px;
+            font-size: 1.2rem;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+        }
+
+        #search-btn:hover {
+            background-color: #21a1f1;
+            transform: scale(1.05);
+        }
+
+        /* Media Queries for Responsiveness */
+        @media (max-width: 768px) {
+            button {
+                font-size: 1rem;
+                padding: 10px;
+            }
+
+            #search-bar {
+                font-size: 1rem;
+            }
+
+            #search-btn {
+                padding: 10px;
+                font-size: 1rem;
+            }
+
+            .cards {
+                margin: 10px 0;
+                padding: 15px;
+            }
+
+            .btn-container {
+                flex-direction: column;
+                align-items: center;
+            }
+        }
+
+        @media (max-width: 480px) {
+            button {
+                font-size: 0.9rem;
+                padding: 8px;
+            }
+
+            #search-bar {
+                font-size: 0.9rem;
+            }
+
+            #search-btn {
+                padding: 8px;
+                font-size: 0.9rem;
+            }
+
+            .cards {
+                padding: 10px;
+                margin: 5px 0;
+            }
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div>
+        <button id="btn-fetch">Fetch Data</button>
+    </div>
+    <div id="search-bar-container">
+        <input type="text" id="search-bar" placeholder="Search by Category..." autocomplete="off" />
+        <div id="category-dropdown"></div>
+    </div>
+    <button id="search-btn">Search</button>
+    <div class="btn-container" id="category-buttons"></div>
+    <div id="output">No Data Available</div>
+
+    <script>
+        let fetchBtn = document.getElementById("btn-fetch");
+        let output = document.getElementById("output");
+        let categoryButtonsContainer = document.getElementById("category-buttons");
+        let searchBar = document.getElementById("search-bar");
+        let searchBtn = document.getElementById("search-btn");
+        let categoryDropdown = document.getElementById("category-dropdown");
+
+        let categories = [];
+
+        // Fetch data and save it to localStorage
+        fetchBtn.onclick = async () => {
+            let response = await fetch("https://fakestoreapi.com/products");
+            let data = await response.json();
+            alert("Data Fetched");
+            localStorage.setItem("data", JSON.stringify(data));
+            displayCategoryButtons(data);
+            displayCategories(data);
+            displayData(data);
+        }
+
+        // Display category buttons dynamically
+        function displayCategoryButtons(data) {
+            categories = [...new Set(data.map(item => item.category))]; // Get unique categories
+            categoryButtonsContainer.innerHTML = "";
+
+            categories.forEach(category => {
+                let button = document.createElement("button");
+                button.innerText = category;
+                button.onclick = () => filterByCategory(category);
+                categoryButtonsContainer.appendChild(button);
+            });
+        }
+
+        // Display dropdown with categories
+        function displayCategories(data) {
+            categories = [...new Set(data.map(item => item.category))]; // Get unique categories
+            searchBar.addEventListener("input", function () {
+                const inputValue = searchBar.value.toLowerCase();
+                categoryDropdown.innerHTML = "";
+                let filteredCategories = categories.filter(category =>
+                    category.toLowerCase().includes(inputValue)
+                );
+                if (filteredCategories.length > 0) {
+                    categoryDropdown.style.display = "block";
+                    filteredCategories.forEach(category => {
+                        let option = document.createElement("div");
+                        option.innerText = category;
+                        option.onclick = () => {
+                            searchBar.value = category;
+                            categoryDropdown.style.display = "none";
+                        };
+                        categoryDropdown.appendChild(option);
+                    });
+                } else {
+                    categoryDropdown.style.display = "none";
+                }
+            });
+        }
+
+        // Hide dropdown if clicked outside
+        document.addEventListener("click", function (event) {
+            if (!event.target.closest("#search-bar-container")) {
+                categoryDropdown.style.display = "none";
+            }
+        });
+
+        // Filter data by category and display
+        function filterByCategory(category) {
+            let data = JSON.parse(localStorage.getItem("data")) || [];
+            if (data.length > 0) {
+                let filteredData = data.filter(obj => obj["category"] === category);
+                displayData(filteredData);
+            } else {
+                output.innerHTML = "No Data Available";
+            }
+        }
+
+        // Display the fetched or filtered data
+        function displayData(data) {
+            output.innerHTML = "";
+            if (data.length === 0) {
+                output.innerHTML = "No Data Available";
+                return;
+            }
+            data.forEach((obj, index) => {
+                let information = document.createElement("div");
+                information.className = "cards";
+                information.innerHTML = `
+                    <p><b>Id : </b>${obj["id"]}</p>
+                    <p><b>Title : </b>${obj["title"]}</p>
+                    <p><b>Price : </b>${obj["price"]}</p>
+                    <p><b>Description : </b>${obj["description"]}</p>
+                    <p><b>Category : </b>${obj["category"]}</p>`;
+
+                let deletebtn = document.createElement("button");
+                deletebtn.innerText = "Delete";
+                deletebtn.onclick = () => {
+                    deleteData(index);
+                }
+
+                information.appendChild(deletebtn);
+                output.appendChild(information);
+            });
+        }
+
+        // Delete item from both data and localStorage
+        function deleteData(index) {
+            let data = JSON.parse(localStorage.getItem("data"));
+            data.splice(index, 1);
+            localStorage.setItem("data", JSON.stringify(data));
+            displayData(data);
+        }
+
+        // Search function based on input value
+        searchBtn.onclick = () => {
+            let query = searchBar.value.toLowerCase().trim();
+            let data = JSON.parse(localStorage.getItem("data")) || [];
+            if (data.length > 0 && query !== "") {
+                let filteredData = data.filter(item => item["category"].toLowerCase().includes(query));
+                displayData(filteredData);
+            } else if (query === "") {
+                output.innerHTML = "Please enter a valid search query.";
+            } else {
+                output.innerHTML = "No matching category found.";
+            }
+        };
+
+        // On page load, check if data exists and display it
+        window.onload = () => {
+            let data = JSON.parse(localStorage.getItem("data")) || [];
+            if (data.length > 0) {
+                displayCategoryButtons(data); // Show category buttons if data exists
+                displayCategories(data); // Show categories in dropdown if data exists
+                displayData(data);
+            } else {
+                output.innerHTML = "No Data Available";
+            }
+        }
+    </script>
+</body>
+
+</html>
